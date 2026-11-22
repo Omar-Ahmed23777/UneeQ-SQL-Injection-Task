@@ -1,55 +1,56 @@
-SQL Injection Assessment & Remediation Report
+# SQL Injection Assessment & Remediation Report
 
-Date: November 12, 2026
+**Date:** November 12, 2026
 
-Author: [Your Name]
+**Author:** \[Your Name\]
 
-Target Environment: DVWA (Localhost) - Security Level: Low
+**Target Environment:** DVWA (Localhost) - Security Level: Low
 
-Vulnerability Type: SQL Injection (SQLi)
+**Vulnerability Type:** SQL Injection (SQLi)
 
-1. Executive Summary
+## 1. Executive Summary
 
 This report documents the identification, exploitation, and remediation of a SQL Injection vulnerability within a deliberately vulnerable web application (DVWA). The assessment demonstrates how improper handling of user input can lead to unauthorized database access and data leakage, followed by a secure code implementation to effectively mitigate the risk.
 
-2. Vulnerability Assessment (Detection & Exploitation)
+## 2. Vulnerability Assessment (Detection & Exploitation)
 
-2.1 Baseline Behavior
+### 2.1 Baseline Behavior
 
-Under normal operating conditions, the application expects an integer value for the User ID parameter. When a valid ID (e.g., 1) is submitted, the application queries the database and returns the corresponding user's details (First Name and Surname).
+Under normal operating conditions, the application expects an integer value for the `User ID` parameter. When a valid ID (e.g., `1`) is submitted, the application queries the database and returns the corresponding user's details (First Name and Surname).
 
-Proof of Baseline:
-![Baseline - Normal Request](Screenshot 2026-11-11 192143.png)
+* **Proof of Baseline:**
+  !\[Baseline - Normal Request\](Screenshot 2026-11-11 192143.png)
 
-2.2 Exploitation (Proof of Concept)
+### 2.2 Exploitation (Proof of Concept)
 
 The vulnerability exists because the application concatenates user-supplied input directly into the SQL query without proper sanitization or parameterization.
 
-By injecting the payload ' OR '1'='1, the backend SQL query is manipulated to always evaluate to TRUE. This bypasses the intended WHERE clause logic, causing the database to return all records from the users table instead of a single record.
+By injecting the payload `' OR '1'='1`, the backend SQL query is manipulated to always evaluate to `TRUE`. This bypasses the intended `WHERE` clause logic, causing the database to return all records from the `users` table instead of a single record.
 
-Payload Used: ' OR '1'='1
+* **Payload Used:** `' OR '1'='1`
 
-Proof of Exploitation (Data Leakage):
-![Exploitation - All Users Returned](Screenshot 2026-11-11 192158.png)
+* **Proof of Exploitation (Data Leakage):**
+  !\[Exploitation - All Users Returned\](Screenshot 2026-11-11 192158.png)
 
-3. Remediation
+## 3. Remediation
 
-3.1 Vulnerability Root Cause
+### 3.1 Vulnerability Root Cause
 
 The original source code was vulnerable because it directly executed the following query format:
-SELECT first_name, last_name FROM users WHERE user_id = '$id';
-This allowed arbitrary SQL commands to be injected via the $id variable.
+`SELECT first_name, last_name FROM users WHERE user_id = '$id';`
+This allowed arbitrary SQL commands to be injected via the `$id` variable.
 
-3.2 Secure Code Implementation
+### 3.2 Secure Code Implementation
 
 To permanently resolve this vulnerability, two main security controls were implemented:
 
-Input Validation: The filter_input() function was used to ensure the provided ID is strictly an integer (FILTER_VALIDATE_INT).
+1. **Input Validation:** The `filter_input()` function was used to ensure the provided ID is strictly an integer (`FILTER_VALIDATE_INT`).
 
-Parameterized Queries (Prepared Statements): The mysqli_prepare function was implemented to separate the SQL logic from the user-supplied data. This ensures that the database treats the input strictly as data (a parameter), nullifying any malicious SQL syntax.
+2. **Parameterized Queries (Prepared Statements):** The `mysqli_prepare` function was implemented to separate the SQL logic from the user-supplied data. This ensures that the database treats the input strictly as data (a parameter), nullifying any malicious SQL syntax.
 
-Remediated Source Code:
+**Remediated Source Code:**
 
+```
 <?php
 if( isset( $_GET[ 'Submit' ] ) ) {
     // 1. Input Validation
@@ -89,18 +90,20 @@ if( isset( $_GET[ 'Submit' ] ) ) {
 ?>
 
 
-Proof of Code Modification:
-![Source Code - Prepared Statements](Screenshot 2026-11-12 001540.png)
+```
 
-4. Verification & Retesting
+* **Proof of Code Modification:**
+  !\[Source Code - Prepared Statements\](Screenshot 2026-11-12 001540.png)
 
-Following the code modifications, the exact same malicious payload (' OR '1'='1) was resubmitted to the application.
+## 4. Verification & Retesting
 
-Due to the implemented input validation (FILTER_VALIDATE_INT), the application immediately recognized the injected string as an invalid integer and rejected the request with the message "ID is invalid." The database was protected from unauthorized queries.
+Following the code modifications, the exact same malicious payload (`' OR '1'='1`) was resubmitted to the application.
 
-Proof of Remediation (Failed Exploit):
-![Verification - Exploit Failed](Screenshot 2026-11-12 001609.png)
+Due to the implemented input validation (`FILTER_VALIDATE_INT`), the application immediately recognized the injected string as an invalid integer and rejected the request with the message "ID is invalid." The database was protected from unauthorized queries.
 
-5. Conclusion
+* **Proof of Remediation (Failed Exploit):**
+  !\[Verification - Exploit Failed\](Screenshot 2026-11-12 001609.png)
+
+## 5. Conclusion
 
 The SQL Injection vulnerability was successfully identified, exploited in a controlled environment, and fully mitigated using industry-standard secure coding practices (Prepared Statements and Input Validation). The application is now resilient against SQL injection attacks on this endpoint.
